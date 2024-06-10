@@ -1,0 +1,22 @@
+# Ignore virtual environments
+venv/
+pyvenv/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE specific
+.vscode/
+
+# Python byte-compiled files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore specific configuration files
+*.spec
+
+# Ignore all JSON Zone Identifier files (typically added by Windows)
+*.Zone.Identifier
+
