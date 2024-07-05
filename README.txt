@@ -1,3 +1,7 @@
+this is a logbook/notebook where you can make log entries and save them to your desired path.
+
+
+
 # File: preparation.py
 
  Step 1: Creating a Project Folder

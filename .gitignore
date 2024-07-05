@@ -1,6 +1,6 @@
 # Ignore virtual environments
 venv/
-pyvenv/
+Code/pyvenv/
 
 # OS generated files
 .DS_Store
@@ -20,3 +20,4 @@ __pycache__/
 # Ignore all JSON Zone Identifier files (typically added by Windows)
 *.Zone.Identifier
 
+.spec
