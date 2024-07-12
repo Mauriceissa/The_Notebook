@@ -28,9 +28,9 @@ encryption_key = b64decode(encoded_key)
 def clear_terminal():                                   #Clears the terminal screen to maintain a clean UI. 
     os.system('cls' if os.name == 'nt' else 'clear')    #Uses different commands based on the operating system.
 
-def import_txt() -> list: # Imports and returns a list of .txt files from the designated log directory.
+def import_txt(folder) -> list: # Imports and returns a list of .txt files from the designated log directory.
     try:
-        all_files = os.listdir(log_folder)
+        all_files = os.listdir(folder)
     except Exception as e:
         print(colored(f"Failed to list directory: {e}", "red"))
         return
@@ -51,8 +51,103 @@ def decrypt(text:str,key:str=encryption_key)->str:   #Decrypts a previously encr
     cipher = AES.new(key, AES.MODE_EAX, nonce=nonce)
     return cipher.decrypt_and_verify(ciphertext, tag).decode('utf-8')
 
-def create_new_logs():  #Handles the creation of new encrypted log entries.
-    print(log_folder)
+import os
+
+def clear_terminal():
+    # Function to clear the terminal/console screen
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def choose_or_create_folder(base_directory):
+    # Ensure the base directory exists
+    if not os.path.exists(base_directory):
+        print(f"The directory '{base_directory}' does not exist.")
+        return None
+
+    while True:
+        # List folders in the base directory
+        folders = [f for f in os.listdir(base_directory) if os.path.isdir(os.path.join(base_directory, f))]
+        
+        if folders:
+            print("Folders in the directory:")
+            for i, folder in enumerate(folders, 1):
+                print(f"{i}. {folder}")
+                
+            print(f"{len(folders) + 1}. Create a new folder")
+            print('Enter "DELETE" followed by folder name to delete a folder')
+            
+            # Prompt user to choose a folder or create a new one
+            choice = input("Choose a folder by number (or create a new one): ")
+            
+            try:
+                choice = int(choice)  # Convert input to integer if it's a number
+            except:
+                try:
+                    if choice.startswith("DELETE "):
+                        # Extract the folder name to delete
+                        folder_name_to_delete = choice.split("DELETE ", 1)[1]
+                        folder_path_to_delete = os.path.join(base_directory, folder_name_to_delete)
+                        clear_terminal()
+                        if os.path.exists(folder_path_to_delete) and os.path.isdir(folder_path_to_delete):
+                            # List files in the folder to be deleted
+                            files_in_folder = os.listdir(folder_path_to_delete)
+                            print(f"These are the files in the folder '{folder_name_to_delete}':\n")
+                            for file in files_in_folder:
+                                print(f"\t- {file}")
+                            # Confirm deletion
+                            confirm_delete = input(f"\nAre you sure you want to delete the folder '{folder_name_to_delete}'? (yes/no): ")
+                            if confirm_delete.lower() == 'yes':
+                                # Delete all files in the folder and then the folder itself
+                                for file in files_in_folder:
+                                    os.remove(os.path.join(folder_path_to_delete, file))
+                                os.rmdir(folder_path_to_delete)
+                                clear_terminal()
+                                print(f"Folder '{folder_name_to_delete}' deleted.")
+                                time.sleep(2)
+                            else:
+                                print("Deletion canceled.")
+                                time.sleep(2)
+                        else:
+                            print(f"Folder '{folder_name_to_delete}' does not exist.")
+                        clear_terminal()
+                        continue 
+                        
+                except ValueError:
+                    print("Invalid input. Please enter a number.")
+                    time.sleep(2)
+                    clear_terminal()
+                continue
+            
+            # Handle the creation of a new folder
+            if choice == len(folders) + 1:
+                folder_name = input("Enter the name of the new folder: ")
+                new_folder_path = os.path.join(base_directory, folder_name)
+                
+                if not os.path.exists(new_folder_path):
+                    os.mkdir(new_folder_path)
+                    print(f"Folder '{folder_name}' created.")
+                    return new_folder_path
+                else:
+                    print(f"A folder named '{folder_name}' already exists. Please choose a different name.")
+            else:
+                # Return the chosen folder's path
+                chosen_folder = folders[choice - 1]
+                chosen_folder_path = os.path.join(base_directory, chosen_folder)
+                return chosen_folder_path
+        else:
+            # Handle the case where no folders exist
+            folder_name = input("No folders found. Enter the name of the new folder: ")
+            new_folder_path = os.path.join(base_directory, folder_name)
+            
+            if not os.path.exists(new_folder_path):
+                os.mkdir(new_folder_path)
+                print(f"Folder '{folder_name}' created.")
+                return new_folder_path
+            else:
+                print(f"A folder named '{folder_name}' already exists. Please choose a different name.")
+
+
+def create_new_logs(folder):  #Handles the creation of new encrypted log entries.
+    print(folder)
     
     the_log, title = open_input_window() 
 
@@ -62,7 +157,7 @@ def create_new_logs():  #Handles the creation of new encrypted log entries.
         filename = f'{formatted_date}_{title}'
         the_file = f"{filename}.txt"
 
-        directory = os.path.join(log_folder, the_file)
+        directory = os.path.join(folder, the_file)
     
         dir_name = os.path.dirname(directory)  # Get the directory name (without the file)
         if not os.path.exists(dir_name):
@@ -81,8 +176,9 @@ def create_new_logs():  #Handles the creation of new encrypted log entries.
         print(colored('\n\t\tThere where no entery so nothing was saved.', 'yellow'))
     time.sleep(2)
 
-def list_all_logs():    #Lists all .txt log files in the log directory.
-    txt_files = import_txt()
+def list_all_logs(folder): 
+       #Lists all .txt log files in the log directory.
+    txt_files = import_txt(folder)
     if not txt_files:
         print("\t\tThere are no txt files in the current directory.")
         return
@@ -91,8 +187,8 @@ def list_all_logs():    #Lists all .txt log files in the log directory.
     for index, filename in enumerate(txt_files):
        print(f"\t\t{index + 1}. {filename}:")
 
-def view_log(choice:int):  #Displays the content of a selected log file after decrypting it
-    txt_files = import_txt()
+def view_log(choice:int, folder):  #Displays the content of a selected log file after decrypting it
+    txt_files = import_txt(folder)
     
     if 0 < choice <= len(txt_files):
         filename = txt_files[choice - 1]
@@ -109,16 +205,14 @@ def view_log(choice:int):  #Displays the content of a selected log file after de
         print(colored("\t\tInvalid selection.","red"))
         time.sleep(2)
 
-def search_specific_log(user_search:str)->str: #Searches for a log file based on a user-provided date or title.
-    txt_files = import_txt()
+def search_specific_log(user_search:str, folder)->str: #Searches for a log file based on a user-provided date or title.
+    txt_files = import_txt(folder)
 
     match_found = False
 
-    user_search = user_search.title() # Normalize the search query to title case to match title formatting
-
     for files in txt_files:
         
-        file_to_read = os.path.join(log_folder, files) 
+        file_to_read = os.path.join(folder, files) 
         
         file_names = files.split('.')[0]
         
@@ -144,9 +238,9 @@ def search_specific_log(user_search:str)->str: #Searches for a log file based on
 
     return file_to_return
 
-def delete_log(file_to_delete:str):  #Deletes a specified log file.
+def delete_log(file_to_delete:str, folder):  #Deletes a specified log file.
     
-    file_path = os.path.join(log_folder, file_to_delete)
+    file_path = os.path.join(folder, file_to_delete)
     print(colored(f"\t\tAre you sure you want to delete {file_to_delete}?", "red"),end='')
     confirm = input(' (Yes/No) ').lower()
     if confirm == 'yes':
@@ -160,7 +254,7 @@ def delete_log(file_to_delete:str):  #Deletes a specified log file.
         print("\n\t\tFile not deleted.")
         time.sleep(2)
 
-def edit_log_content(choice:str):   #Opens an existing log for editing and saves the changes.
+def edit_log_content(choice:str,):   #Opens an existing log for editing and saves the changes.
     print('success you made it here')
     time.sleep(1)
     filename = choice
@@ -196,8 +290,8 @@ def edit_log_content(choice:str):   #Opens an existing log for editing and saves
     print(f'\t\tThe new version of "{filename}" has been saved ')
     time.sleep(2)
 
-def edit_log():  # Provides options to either edit or delete a log entry based on user choice.
-    txt_files = import_txt()
+def edit_log(folder):  # Provides options to either edit or delete a log entry based on user choice.
+    txt_files = import_txt(folder)
 
     input_edit_delete = int(input('\t\tDo you want to edit or delete a log?\n\t\tPress (1) to delete\n\t\tPress (2) to edit\n\t\tPress (3) to return to menu\n\n\t\tAnswer here -> '))
     
@@ -211,7 +305,7 @@ def edit_log():  # Provides options to either edit or delete a log entry based o
         print('\t\tGoing back to the menu')
         return True
 
-    list_all_logs()
+    list_all_logs(folder)
 
     log_choice = input("\n\t\tEnter the index number or the name of the file you want to modify.\n\n\t\t->   ").title()
     
@@ -220,20 +314,19 @@ def edit_log():  # Provides options to either edit or delete a log entry based o
         file_to_edit = txt_files[int_choice - 1]
     
         if input_edit_delete == 1:
-            delete_log(file_to_edit)
+            delete_log(file_to_edit, folder)
         elif input_edit_delete == 2:
             edit_log_content(file_to_edit)
 
     except:                                     # If conversion fails, treat input as a title or date
-        file_to_edit = search_specific_log(log_choice)
+        file_to_edit = search_specific_log(log_choice,folder)
         if file_to_edit is not None:
             if input_edit_delete == 1:
-                delete_log(file_to_edit)
+                delete_log(file_to_edit, folder)
             elif input_edit_delete == 2:
                 edit_log_content(file_to_edit)
         else:
             print(f'\t\tThere is no log with the title or date: {log_choice}')
-
 
 
 password_guesses = 3
@@ -260,27 +353,33 @@ while password_guesses >0:   # Main execution loop for user authentication and m
                 
                 if menu_choice == 1:
                     clear_terminal()
-                    create_new_logs()
+                    folder = choose_or_create_folder(log_folder)
+                    print(folder)
+                    create_new_logs(folder)
                     continue
 
                 if menu_choice == 2:
                     clear_terminal()
-                    list_all_logs()
+                    folder = choose_or_create_folder(log_folder)
+                    clear_terminal()
+                    list_all_logs(folder)
 
                     user_input = input('\n\n\t\tEnter the name, date or index number\n\t\tof the log you want to read!\n\n\t\t->  ')
                     try:
                         is_number = int(user_input)
-                        view_log(is_number)
-                        time.sleep(1)
+                        view_log(is_number,folder)
+                        time.sleep(5)
                         continue
                     except:
-                        search_specific_log(user_input) 
+                        search_specific_log(user_input,folder) 
                         time.sleep(1)
                         continue   
 
                 if menu_choice == 3:
                     clear_terminal()
-                    edit_log()
+                    folder = choose_or_create_folder(log_folder)
+                    clear_terminal()
+                    edit_log(folder)
                     time.sleep(1)
                     continue
 
